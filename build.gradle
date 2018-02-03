@@ -1,0 +1,38 @@
+buildscript {
+    ext {
+        versions = [
+                gradle : '4.4.1',
+                kotlin : '1.2.21',
+                code   : 1,
+                name   : '1.0.0',
+                sdk    : [
+                        minimum: 14,
+                        target : 27
+                ],
+                android: [
+                        buildTools: '27.0.3',
+                        support   : '27.0.2'
+                ]
+        ]
+    }
+    repositories {
+        google()
+        jcenter()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.0.1'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${versions.kotlin}"
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+        maven { url 'http://artifactory.fotoapparat.io:8081/artifactory/products' }
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
