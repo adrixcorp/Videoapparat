@@ -39,6 +39,8 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
+        Fotoapparat.setLicence("PASTE YOUR LICENSE HERE")
+
         permissionsGranted = permissionsDelegate.hasPermissions()
 
         if (permissionsGranted) {
