@@ -1,13 +1,12 @@
 package io.videoapparat.sample
 
 import android.graphics.Bitmap
-import android.media.ThumbnailUtils
 import android.os.Bundle
-import android.provider.MediaStore
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
 import android.widget.CompoundButton
+import android.widget.ImageView
 import android.widget.SeekBar
 import io.fotoapparat.Fotoapparat
 import io.fotoapparat.configuration.CameraConfiguration
@@ -15,13 +14,14 @@ import io.fotoapparat.configuration.UpdateConfiguration
 import io.fotoapparat.log.logcat
 import io.fotoapparat.parameter.Flash
 import io.fotoapparat.result.RecordingResult
-import io.fotoapparat.result.Video
 import io.fotoapparat.result.transformer.scaled
 import io.fotoapparat.selector.*
+import io.videoapparat.sample.extensions.*
+import io.videoapparat.sample.view.CameraState.Movie.ReadyToRecord
+import io.videoapparat.sample.view.CameraState.Movie.StopRecording
+import io.videoapparat.sample.view.CameraState.Picture
+import io.videoapparat.sample.view.CameraStatePresenter
 import kotlinx.android.synthetic.main.activity_main.*
-import kotlinx.coroutines.experimental.android.UI
-import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.withContext
 import java.io.File
 
 
@@ -33,11 +33,12 @@ class MainActivity : AppCompatActivity() {
     private var activeCamera: Camera = Camera.Back
 
     private lateinit var fotoapparat: Fotoapparat
-    private var recording = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
+        Fotoapparat.setLicence("PASTE YOUR LICENSE KEY")
 
         permissionsGranted = permissionsDelegate.hasPermissions()
 
@@ -57,8 +58,18 @@ class MainActivity : AppCompatActivity() {
                 cameraErrorCallback = { Log.e(LOGGING_TAG, "Camera error: ", it) }
         )
 
-        capture onClick takePicture()
-        record onClick record()
+        CameraStatePresenter(
+                capture = capture,
+                changeMode = changeMode,
+                onCameraActionListener = { state ->
+                    when (state) {
+                        Picture -> takePicture()
+                        ReadyToRecord -> startRecording()
+                        StopRecording -> stopRecording()
+                    }
+                }
+        )
+
         zoomSeekBar onProgressChanged updateZoom()
         switchCamera onClick changeCamera()
         torchSwitch onCheckedChanged toggleFlash()
@@ -68,16 +79,17 @@ class MainActivity : AppCompatActivity() {
         fotoapparat.setZoom(progress / seekBar.max.toFloat())
     }
 
-    private fun takePicture(): () -> Unit = {
+    private fun takePicture() {
+        val photoFile = File(
+                getExternalFilesDir("photos"),
+                "photo.jpg"
+        )
+
         val photoResult = fotoapparat
                 .autoFocus()
                 .takePicture()
 
-        photoResult
-                .saveToFile(File(
-                        getExternalFilesDir("photos"),
-                        "photo.jpg"
-                ))
+        photoResult.saveToFile(photoFile)
 
         photoResult
                 .toBitmap(scaled(scaleFactor = 0.25f))
@@ -85,23 +97,17 @@ class MainActivity : AppCompatActivity() {
                     photo
                             ?.let {
                                 Log.i(LOGGING_TAG, "New photo captured. Bitmap length: ${it.bitmap.byteCount}")
-                                with(result) {
-                                    setImageBitmap(it.bitmap)
-                                    rotation = (-it.rotationDegrees).toFloat()
-                                }
+
+                                result.setResult(
+                                        bitmap = it.bitmap,
+                                        rotation = (-it.rotationDegrees).toFloat(),
+                                        onClick = {
+                                            openPhotoActivity(photoFile)
+                                        }
+                                )
                             }
                             ?: Log.e(LOGGING_TAG, "Couldn't capture photo.")
                 }
-    }
-
-
-    private fun record(): () -> Unit = {
-        when {
-            recording -> stopRecording()
-            else -> startRecording()
-        }
-
-        recording = !recording
     }
 
     private fun startRecording() {
@@ -112,21 +118,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun stopRecording() {
-        val recordingResult = fotoapparat.stopRecording()
+        fotoapparat.stopRecording()
+                .whenAvailable { recordingResult ->
+                    Log.e(LOGGING_TAG, "Stop recording result: $recordingResult")
 
-        recordingResult.whenAvailable { it ->
-            Log.e(LOGGING_TAG, "Stop recording result: $it")
+                    if (recordingResult is RecordingResult.Success) {
+                        val videoFile = recordingResult.video.file
 
-            if (it is RecordingResult.Success) {
-                it.video.makeThumbnail {
-                    with(result) {
-                        setImageBitmap(it)
-                        rotation = 0f
+                        videoFile.makeThumbnail {
+                            result.setResult(
+                                    bitmap = it,
+                                    rotation = 0f,
+                                    onClick = {
+                                        openVideoActivity(videoFile)
+                                    }
+                            )
+                        }
                     }
                 }
-            }
-        }
     }
+
 
     private fun changeCamera(): () -> Unit = {
         activeCamera = when (activeCamera) {
@@ -144,7 +155,7 @@ class MainActivity : AppCompatActivity() {
         zoomSeekBar.progress = 0
         torchSwitch.isChecked = false
 
-        Log.i(LOGGING_TAG, "New camera position: ${if (activeCamera is Camera.Back) "back" else "front"}")
+        Log.i(LOGGING_TAG, "New camera position: ${if (activeCamera == Camera.Back) "back" else "front"}")
     }
 
     private fun toggleFlash(): (CompoundButton, Boolean) -> Unit = { _, isChecked ->
@@ -205,14 +216,11 @@ class MainActivity : AppCompatActivity() {
 
 }
 
-private fun Video.makeThumbnail(function: (Bitmap) -> Unit) = launch {
-    val thumbnail = ThumbnailUtils.createVideoThumbnail(
-            file.absolutePath,
-            MediaStore.Images.Thumbnails.MINI_KIND
-    )
-    withContext(UI) {
-        thumbnail?.let(function)
-    }
+private fun ImageView.setResult(bitmap: Bitmap, rotation: Float, onClick: () -> Unit) {
+    setImageBitmap(bitmap)
+    this.rotation = rotation
+
+    onClick(onClick)
 }
 
 private const val LOGGING_TAG = "Fotoapparat Example"

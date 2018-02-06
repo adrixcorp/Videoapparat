@@ -1,9 +1,10 @@
-package io.videoapparat.sample
+package io.videoapparat.sample.extensions
 
 import android.support.v7.widget.SwitchCompat
 import android.view.View
 import android.widget.CompoundButton
 import android.widget.SeekBar
+import io.videoapparat.sample.view.OnProgressChanged
 
 
 internal infix fun SwitchCompat.onCheckedChanged(function: (CompoundButton, Boolean) -> Unit) {

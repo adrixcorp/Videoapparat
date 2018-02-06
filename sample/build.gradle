@@ -30,3 +30,5 @@ dependencies {
 
     implementation 'io.videoapparat:library:1.0.4'
 }
+
+kotlin.experimental.coroutines "enable"

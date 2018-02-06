@@ -36,7 +36,7 @@
         tools:visibility="visible" />
 
 
-    <FrameLayout
+    <RelativeLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fitsSystemWindows="true">
@@ -76,32 +76,31 @@
             android:id="@+id/result"
             android:layout_width="150dp"
             android:layout_height="150dp"
-            android:layout_gravity="bottom|left"
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentLeft="true"
             tools:ignore="ContentDescription,RtlHardcoded" />
 
-        <LinearLayout
+        <io.videoapparat.sample.view.CaptureButton
+            android:id="@+id/capture"
+            android:layout_width="70dp"
+            android:layout_height="70dp"
+            android:layout_alignParentBottom="true"
+            android:layout_centerHorizontal="true"
+            android:layout_marginBottom="10dp"
+            tools:ignore="ContentDescription"
+            tools:src="@drawable/stop_recording_inactive" />
+
+        <io.videoapparat.sample.view.CameraModeChangeView
+            android:id="@+id/changeMode"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:layout_gravity="bottom|center_horizontal"
-            android:layout_marginBottom="10dp">
+            android:layout_alignParentBottom="true"
+            android:layout_alignParentRight="true"
+            android:layout_alignTop="@id/capture"
+            android:padding="24dp"
+            tools:src="@drawable/ic_videocam_white"
+            tools:ignore="ContentDescription,RtlHardcoded" />
 
-            <ImageView
-                android:id="@+id/capture"
-                android:layout_width="70dp"
-                android:layout_height="70dp"
-                android:src="@drawable/capture"
-                tools:ignore="ContentDescription" />
-
-            <ImageView
-                android:id="@+id/record"
-                android:layout_width="70dp"
-                android:layout_height="70dp"
-                android:layout_marginLeft="10dp"
-                android:src="@drawable/record"
-                tools:ignore="ContentDescription,RtlHardcoded" />
-
-        </LinearLayout>
-
-    </FrameLayout>
+    </RelativeLayout>
 
 </android.support.v7.widget.FitWindowsFrameLayout>

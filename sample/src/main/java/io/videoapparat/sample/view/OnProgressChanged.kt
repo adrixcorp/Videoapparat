@@ -1,4 +1,4 @@
-package io.videoapparat.sample
+package io.videoapparat.sample.view
 
 import android.widget.SeekBar
 
